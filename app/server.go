@@ -6,6 +6,15 @@ import (
 	"os"
 )
 
+//Função responsavel por lidar com o envio de mensagens para o client
+//Function responsible for handling sending messages to the client
+func handleMessage(conn net.Conn, message string) {
+	_, err := conn.Write([]byte(message))
+	if err != nil {
+		panic(err)
+	}
+}
+
 func main() {
 	fmt.Println("Logs from your program will appear here!")
 
@@ -14,11 +23,13 @@ func main() {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
 	}
-	connection, err := l.Accept()
+	conn, err := l.Accept()
 	if err != nil {
 		fmt.Println("Error accepting connection: ", err.Error())
 		os.Exit(1)
 	}
 
-	connection.Write([]byte("+PONG\r\n"))
+	//enviando a mensagem 
+	//seding message
+	handleMessage(conn, "+PONG\r\n")
 }
