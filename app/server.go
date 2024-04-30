@@ -8,19 +8,15 @@ import (
 
 var MessageBuffer []byte = make([]byte, 1024)
 
-//Função responsavel por lidar com o envio de mensagens para o client
-//Function responsible for handling sending messages to the client
+// Função responsavel por lidar com o envio de mensagens para o client
+// Function responsible for handling sending messages to the client
 func handleMessage(conn net.Conn) {
 	_, err := conn.Read(MessageBuffer)
 	if err != nil {
 		panic(err)
 	}
 	
-	for _, message := range MessageBuffer {
-		msg := string(message)
-		fmt.Println(msg)
-	}
-	
+	fmt.Println(string(MessageBuffer))
 }
 
 func main() {
@@ -37,7 +33,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	//enviando a mensagem 
+	//enviando a mensagem
 	//seding message
 	handleMessage(conn)
 }
