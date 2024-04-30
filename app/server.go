@@ -6,17 +6,17 @@ import (
 	"os"
 )
 
-var MessageBuffer chan []byte =  make(chan []byte)
+var MessageBuffer []byte = make([]byte, 1024)
 
 //Função responsavel por lidar com o envio de mensagens para o client
 //Function responsible for handling sending messages to the client
 func handleMessage(conn net.Conn) {
-	_, err := conn.Read(<-MessageBuffer)
+	_, err := conn.Read(MessageBuffer)
 	if err != nil {
 		panic(err)
 	}
 	
-	for _, message := range <-MessageBuffer {
+	for _, message := range MessageBuffer {
 		msg := string(message)
 		fmt.Println(msg)
 	}
