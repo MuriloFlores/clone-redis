@@ -6,13 +6,18 @@ import (
 	"os"
 )
 
+var MessageBuffer []byte = make([]byte, 1024)
+
 //Função responsavel por lidar com o envio de mensagens para o client
 //Function responsible for handling sending messages to the client
 func handleMessage(conn net.Conn, message string) {
-	_, err := conn.Write([]byte(message))
+	_, err := conn.Read(MessageBuffer)
 	if err != nil {
 		panic(err)
 	}
+	
+	fmt.Println(message, MessageBuffer)
+	
 }
 
 func main() {
