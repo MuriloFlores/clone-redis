@@ -6,17 +6,20 @@ import (
 	"os"
 )
 
-var MessageBuffer []byte = make([]byte, 1024)
+var MessageBuffer chan []byte =  make(chan []byte)
 
 //Função responsavel por lidar com o envio de mensagens para o client
 //Function responsible for handling sending messages to the client
-func handleMessage(conn net.Conn, message string) {
-	_, err := conn.Read(MessageBuffer)
+func handleMessage(conn net.Conn) {
+	_, err := conn.Read(<-MessageBuffer)
 	if err != nil {
 		panic(err)
 	}
 	
-	fmt.Println(message, MessageBuffer)
+	for _, message := range <-MessageBuffer {
+		msg := string(message)
+		fmt.Println(msg)
+	}
 	
 }
 
@@ -36,5 +39,5 @@ func main() {
 
 	//enviando a mensagem 
 	//seding message
-	handleMessage(conn, "+PONG\r\n")
+	handleMessage(conn)
 }
