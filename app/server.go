@@ -34,10 +34,10 @@ func handleConnection(port string) net.Conn {
 		}
 
 		conn, err := l.Accept()
-		if err == nil {
-			fmt.Println("Error accepting connection")
-			os.Exit(1)
-		}
+	if err != nil {
+		fmt.Println("Error accepting connection: ", err.Error())
+		os.Exit(1)
+	}
 
 		handleMessage(conn, "+PONG\r\n")
 	}
@@ -49,3 +49,4 @@ func main() {
 	handleConnection("0.0.0.0:6379")
 
 }
+
