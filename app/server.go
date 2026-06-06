@@ -2,26 +2,51 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"os"
+	"strings"
+	"sync"
 )
 
-var MessageBuffer []byte = make([]byte, 1024)
+var bufferPool = sync.Pool{
+	New: func() interface{} {
+		return make([]byte, 1024)
+	},
+}
 
-// Função responsavel por lidar com o envio de mensagens para o client
-// Function responsible for handling sending messages to the client
 func handleMessage(conn net.Conn, message string) {
+	defer conn.Close()
+
+	bufInterface := bufferPool.Get()
+	buffer := bufInterface.([]byte)
+
+	defer bufferPool.Put(bufInterface)
+
 	for {
-		_, err := conn.Read(MessageBuffer)
+		n, err := conn.Read(buffer)
 		if err != nil {
-			panic(err)
+			if err == io.EOF {
+				return
+			}
+			fmt.Printf("Error reading: %s\n", err)
+			continue
 		}
 
-		_, err = conn.Write([]byte(message))
+		_, err = conn.Write(cleanMessage(buffer[:n]))
 		if err != nil {
-			panic(err)
+			fmt.Printf("Error writing: %s\n", err)
+			continue
 		}
 	}
+}
+
+func cleanMessage(message []byte) []byte {
+	if strings.Contains(strings.TrimSpace(string(message)), "PING") {
+		return []byte("PONG " + strings.Split(string(message), " ")[1])
+	}
+
+	return []byte("")
 }
 
 func handleConnection() net.Conn {
@@ -31,7 +56,7 @@ func handleConnection() net.Conn {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
 	}
-	
+
 	for {
 
 		conn, err := l.Accept()
@@ -40,7 +65,7 @@ func handleConnection() net.Conn {
 			os.Exit(1)
 		}
 
-		handleMessage(conn, "+PONG\r\n")
+		go handleMessage(conn, "+PONG\r\n")
 	}
 }
 
