@@ -15,6 +15,8 @@ var bufferPool = sync.Pool{
 	},
 }
 
+var db = map[string]string{}
+
 func handleMessage(conn net.Conn, message string) {
 	defer conn.Close()
 
@@ -24,7 +26,7 @@ func handleMessage(conn net.Conn, message string) {
 	defer bufferPool.Put(bufInterface)
 
 	for {
-		n, err := conn.Read(buffer)
+		byteLen, err := conn.Read(buffer)
 		if err != nil {
 			if err == io.EOF {
 				return
@@ -33,7 +35,7 @@ func handleMessage(conn net.Conn, message string) {
 			continue
 		}
 
-		_, err = conn.Write(cleanMessage(buffer[:n]))
+		_, err = conn.Write(cleanMessage(buffer[:byteLen]))
 		if err != nil {
 			fmt.Printf("Error writing: %s\n", err)
 			continue
@@ -42,11 +44,27 @@ func handleMessage(conn net.Conn, message string) {
 }
 
 func cleanMessage(message []byte) []byte {
-	if strings.Contains(strings.TrimSpace(string(message)), "PING") {
-		return []byte("PONG " + strings.Split(string(message), " ")[1])
+	totalWords := strings.Split(string(message), " ")
+
+	if strings.TrimSpace(strings.ToUpper(totalWords[0])) == "SET" {
+		db[totalWords[1]] = totalWords[2]
+
+		fmt.Println(db)
+
+		return []byte(fmt.Sprintf("$+OK\r\n"))
 	}
 
-	return []byte("")
+	if strings.TrimSpace(strings.ToUpper(totalWords[0])) == "GET" {
+		for key, value := range db {
+			if key == totalWords[1] {
+				fmt.Println(db)
+
+				return []byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value))
+			}
+		}
+	}
+
+	return []byte("$-1\r\n")
 }
 
 func handleConnection() net.Conn {

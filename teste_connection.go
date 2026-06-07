@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	clientsCount := 10000
+	clientsCount := 1
 
 	var wg sync.WaitGroup
 
@@ -26,7 +26,7 @@ func main() {
 
 			defer conn.Close()
 
-			message := fmt.Sprintf("PING %d\n", id)
+			message := fmt.Sprint("SET foo bar")
 			_, err = conn.Write([]byte(message))
 			if err != nil {
 				fmt.Printf("[CLIENT %d] Falha ao enviar mensagem: %v\n", id, err)
@@ -47,7 +47,7 @@ func main() {
 				return
 			}
 
-			fmt.Printf("[CLIENT %d] Mensagem recebida: %s\n", id, buffer[:c])
+			fmt.Printf("%s\n", buffer[:c])
 		}(i)
 	}
 
