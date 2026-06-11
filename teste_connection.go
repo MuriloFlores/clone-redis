@@ -3,9 +3,20 @@ package main
 import (
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"time"
 )
+
+// buildRESP converte uma lista de strings no formato Array de Bulk Strings do Redis
+func buildRESP(args ...string) string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("*%d\r\n", len(args)))
+	for _, arg := range args {
+		sb.WriteString(fmt.Sprintf("$%d\r\n%s\r\n", len(arg), arg))
+	}
+	return sb.String()
+}
 
 func main() {
 	clientsCount := 1
@@ -23,10 +34,14 @@ func main() {
 				fmt.Printf("[CLIENT %d] Falha ao conectar: %v\n", id, err)
 				return
 			}
-
 			defer conn.Close()
 
-			message := fmt.Sprint("SET foo bar")
+			// Utilizando a função auxiliar para montar a mensagem RESP corretamente
+			message := buildRESP("SET", "foo", "bar")
+
+			// Se depois quiser testar o GET, basta usar:
+			// message := buildRESP("GET", "foo")
+
 			_, err = conn.Write([]byte(message))
 			if err != nil {
 				fmt.Printf("[CLIENT %d] Falha ao enviar mensagem: %v\n", id, err)
@@ -47,7 +62,7 @@ func main() {
 				return
 			}
 
-			fmt.Printf("%s\n", buffer[:c])
+			fmt.Printf("[CLIENT %d] Resposta do servidor: %q\n", id, buffer[:c])
 		}(i)
 	}
 
