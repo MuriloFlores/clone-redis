@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-// buildRESP converte uma lista de strings no formato Array de Bulk Strings do Redis
 func buildRESP(args ...string) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("*%d\r\n", len(args)))
@@ -36,10 +35,8 @@ func main() {
 			}
 			defer conn.Close()
 
-			// Utilizando a função auxiliar para montar a mensagem RESP corretamente
 			message := buildRESP("SET", "foo", "bar")
 
-			// Se depois quiser testar o GET, basta usar:
 			// message := buildRESP("GET", "foo")
 
 			_, err = conn.Write([]byte(message))

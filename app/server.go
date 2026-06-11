@@ -2,34 +2,31 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"net"
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 )
 
-var bufferPool = sync.Pool{
-	New: func() interface{} {
-		return make([]byte, 1024)
-	},
-}
-
-var db = map[string]string{}
+var memDb = map[string]string{}
 
 func MessageReader(conn net.Conn) ([]string, error) {
 	reader := bufio.NewReader(conn)
 
 	messageType, err := reader.ReadByte()
 	if err != nil {
-		return nil, err
+		if err == io.EOF {
+			return nil, nil
+		}
+
+		return nil, fmt.Errorf("erro de leitura da mensagem %v", err)
+
 	}
 
 	if messageType != '*' {
-		return nil, errors.New("invalid message type")
+		return nil, fmt.Errorf("erro no tipo da mensagem da mensagem %v", err)
 	}
 
 	arrLenLine, _ := reader.ReadString('\n')
@@ -38,7 +35,7 @@ func MessageReader(conn net.Conn) ([]string, error) {
 	commands := make([]string, arrLen)
 
 	for i := 0; i < arrLen; i++ {
-		reader.ReadByte() //Pulando o byte $
+		reader.ReadByte()
 
 		wordLenLine, _ := reader.ReadString('\n')
 		wordLen, _ := strconv.Atoi(strings.TrimSpace(wordLenLine))
@@ -55,35 +52,42 @@ func MessageReader(conn net.Conn) ([]string, error) {
 	return commands, nil
 }
 
+func handleCommand(message []string) string {
+	command := strings.ToUpper(message[0])
+
+	if command == "SET" {
+		memDb[message[1]] = message[2]
+
+		fmt.Println(memDb)
+		return "+OK\r\n"
+	}
+
+	if command == "GET" {
+		if value, ok := memDb[message[1]]; ok {
+			fmt.Println(memDb)
+			return fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)
+		}
+
+		return "$-1\r\n"
+	}
+
+	return fmt.Sprintf("-ERR unknown command '%s'\r\n", message[0])
+}
+
 func handleMessage(conn net.Conn) {
 	defer conn.Close()
 
-	bufInterface := bufferPool.Get()
-	buffer := bufInterface.([]byte)
-
-	defer bufferPool.Put(bufInterface)
-
 	for {
-		_, err := conn.Read(buffer)
-		if err != nil {
-			if err == io.EOF {
-				return
-			}
-			fmt.Printf("Error reading: %s\n", err)
-			continue
-		}
-
 		words, err := MessageReader(conn)
 		if err != nil {
 			fmt.Printf("Error reading: %s\n", err)
 		}
 
-		fmt.Println(words)
+		returnMessage := handleCommand(words)
 
-		_, err = conn.Write([]byte{})
+		_, err = conn.Write([]byte(returnMessage))
 		if err != nil {
 			fmt.Printf("Error writing: %s\n", err)
-			continue
 		}
 	}
 }
