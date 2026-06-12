@@ -64,7 +64,6 @@ func handleCommand(message []string) string {
 
 	if command == "GET" {
 		if value, ok := memDb[message[1]]; ok {
-			fmt.Println(memDb)
 			return fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)
 		}
 
@@ -79,8 +78,13 @@ func handleMessage(conn net.Conn) {
 
 	for {
 		words, err := MessageReader(conn)
+
 		if err != nil {
 			fmt.Printf("Error reading: %s\n", err)
+		}
+
+		if len(words) == 0 {
+			return
 		}
 
 		returnMessage := handleCommand(words)
