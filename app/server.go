@@ -8,9 +8,11 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var memDb = map[string]string{}
+var dbMu sync.RWMutex
 
 func MessageReader(conn net.Conn) ([]string, error) {
 	reader := bufio.NewReader(conn)
@@ -56,14 +58,21 @@ func handleCommand(message []string) string {
 	command := strings.ToUpper(message[0])
 
 	if command == "SET" {
+		dbMu.Lock()
 		memDb[message[1]] = message[2]
+		dbMu.Unlock()
 
 		fmt.Println(memDb)
+
 		return "+OK\r\n"
 	}
 
 	if command == "GET" {
-		if value, ok := memDb[message[1]]; ok {
+		dbMu.RLock()
+		value, ok := memDb[message[1]]
+		dbMu.RUnlock()
+
+		if ok {
 			return fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)
 		}
 
